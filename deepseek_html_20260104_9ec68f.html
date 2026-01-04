@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Город - Одиночная игра</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background-color: #87CEEB;
+            color: #333;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            max-width: 300px;
+            backdrop-filter: blur(5px);
+        }
+        
+        #info-panel h2 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        
+        #info-panel p {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            max-width: 300px;
+            backdrop-filter: blur(5px);
+        }
+        
+        #controls h3 {
+            color: #FF9800;
+            margin-bottom: 10px;
+        }
+        
+        #controls ul {
+            list-style-type: none;
+            margin-left: 10px;
+        }
+        
+        #controls li {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s;
+        }
+        
+        #loading-screen h1 {
+            font-size: 3rem;
+            margin-bottom: 30px;
+            color: #4CAF50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+        }
+        
+        #loading-screen p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        #loading-bar {
+            width: 300px;
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        #loading-progress {
+            height: 100%;
+            width: 0%;
+            background-color: #4CAF50;
+            transition: width 0.3s;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            z-index: 100;
+            font-size: 0.9rem;
+        }
+        
+        .block {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .block:hover {
+            transform: scale(1.05);
+        }
+        
+        #day-night {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            z-index: 100;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #time-slider {
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <h1>MINECRAFT ГОРОД</h1>
+        <p>Загрузка мира...</p>
+        <div id="loading-bar">
+            <div id="loading-progress"></div>
+        </div>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div id="info-panel">
+        <h2>Minecraft Город</h2>
+        <p>Добро пожаловать в город в стиле Minecraft! Исследуйте улицы, здания и парки.</p>
+        <p><strong>Город включает:</strong></p>
+        <ul>
+            <li>• Жилые дома</li>
+            <li>• Небоскребы</li>
+            <li>• Парки с деревьями</li>
+            <li>• Дороги и тротуары</li>
+            <li>• Уличные фонари</li>
+        </ul>
+    </div>
+    
+    <div id="controls">
+        <h3>Управление</h3>
+        <ul>
+            <li><strong>WASD</strong> - Движение</li>
+            <li><strong>Мышь</strong> - Вращение камеры</li>
+            <li><strong>Пробел</strong> - Прыжок</li>
+            <li><strong>Shift</strong> - Ускорение</li>
+            <li><strong>R</strong> - Смена дня и ночи</li>
+            <li><strong>ЛКМ</strong> - Убрать блок</li>
+            <li><strong>ПКМ</strong> - Поставить блок</li>
+        </ul>
+    </div>
+    
+    <div id="day-night">
+        <span>Время суток:</span>
+        <input type="range" id="time-slider" min="0" max="100" value="50">
+    </div>
+    
+    <div id="status">Готов к исследованию...</div>
+
+    <!-- Three.js библиотека -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- PointerLockControls для управления от первого лица -->
+    <script src="https://threejs.org/examples/js/controls/PointerLockControls.js"></script>
+
+    <script>
+        // Основные переменные
+        let scene, camera, renderer, controls;
+        let world = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedBlock = null;
+        let clock = new THREE.Clock();
+        let directionalLight, ambientLight;
+        let isNight = false;
+        let velocity = new THREE.Vector3();
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let canJump = false;
+        let prevTime = performance.now();
+        
+        // Материалы для блоков
+        const blockMaterials = {
+            grass: new THREE.MeshLambertMaterial({ color: 0x7cfc00 }),
+            dirt: new THREE.MeshLambertMaterial({ color: 0x8b4513 }),
+            stone: new THREE.MeshLambertMaterial({ color: 0x808080 }),
+            wood: new THREE.MeshLambertMaterial({ color: 0x8b7355 }),
+            glass: new THREE.MeshLambertMaterial({ color: 0x87ceeb, transparent: true, opacity: 0.7 }),
+            road: new THREE.MeshLambertMaterial({ color: 0x333333 }),
+            sidewalk: new THREE.MeshLambertMaterial({ color: 0xc0c0c0 }),
+            building1: new THREE.MeshLambertMaterial({ color: 0xff6b6b }),
+            building2: new THREE.MeshLambertMaterial({ color: 0x4ecdc4 }),
+            building3: new THREE.MeshLambertMaterial({ color: 0xffd166 }),
+            roof: new THREE.MeshLambertMaterial({ color: 0x2a9d8f }),
+            water: new THREE.MeshLambertMaterial({ color: 0x1e90ff, transparent: true, opacity: 0.8 })
+        };
+        
+        // Загрузка игры
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            setupEventListeners();
+        });
+        
+        // Инициализация игры
+        function initGame() {
+            // Создание сцены
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87CEEB, 10, 100);
+            
+            // Создание камеры
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 20);
+            
+            // Создание рендерера
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+            
+            // Освещение
+            ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 100, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Создание мира
+            createWorld();
+            
+            // Управление
+            controls = new THREE.PointerLockControls(camera, document.body);
+            scene.add(controls.getObject());
+            
+            // Симуляция загрузки
+            simulateLoading();
+            
+            // Запуск игрового цикла
+            animate();
+        }
+        
+        // Создание мира (города)
+        function createWorld() {
+            // Создание земли
+            createGround();
+            
+            // Создание дорог
+            createRoads();
+            
+            // Создание зданий
+            createBuildings();
+            
+            // Создание парка
+            createPark();
+            
+            // Создание небоскреба
+            createSkyscraper(0, 0, 30);
+            
+            // Создание водоема
+            createPond(-25, 0, -25);
+        }
+        
+        // Создание земли
+        function createGround() {
+            const groundSize = 100;
+            const groundGeometry = new THREE.BoxGeometry(groundSize, 1, groundSize);
+            const ground = new THREE.Mesh(groundGeometry, blockMaterials.grass);
+            ground.position.set(0, -0.5, 0);
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Добавляем траву на землю
+            for (let i = 0; i < 200; i++) {
+                const grassGeometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+                const grass = new THREE.Mesh(grassGeometry, blockMaterials.grass);
+                grass.position.set(
+                    Math.random() * groundSize - groundSize/2,
+                    0.25,
+                    Math.random() * groundSize - groundSize/2
+                );
+                scene.add(grass);
+            }
+        }
+        
+        // Создание дорог
+        function createRoads() {
+            // Главная дорога по оси X
+            const mainRoadGeometry = new THREE.BoxGeometry(60, 0.2, 10);
+            const mainRoad = new THREE.Mesh(mainRoadGeometry, blockMaterials.road);
+            mainRoad.position.set(0, 0.1, 0);
+            mainRoad.receiveShadow = true;
+            scene.add(mainRoad);
+            
+            // Перекресток по оси Z
+            const crossRoadGeometry = new THREE.BoxGeometry(10, 0.2, 60);
+            const crossRoad = new THREE.Mesh(crossRoadGeometry, blockMaterials.road);
+            crossRoad.position.set(0, 0.1, 0);
+            crossRoad.receiveShadow = true;
+            scene.add(crossRoad);
+            
+            // Тротуары
+            createSidewalk(-25, 0.2, 0, 50, 2);
+            createSidewalk(25, 0.2, 0, 50, 2);
+            createSidewalk(0, 0.2, -25, 2, 50);
+            createSidewalk(0, 0.2, 25, 2, 50);
+            
+            // Уличные фонари
+            createStreetLights();
+        }
+        
+        // Создание тротуаров
+        function createSidewalk(x, y, z, width, depth) {
+            const sidewalkGeometry = new THREE.BoxGeometry(width, 0.1, depth);
+            const sidewalk = new THREE.Mesh(sidewalkGeometry, blockMaterials.sidewalk);
+            sidewalk.position.set(x, y, z);
+            sidewalk.receiveShadow = true;
+            scene.add(sidewalk);
+        }
+        
+        // Создание уличных фонарей
+        function createStreetLights() {
+            const positions = [
+                [-20, 0, 5], [-20, 0, -5],
+                [20, 0, 5], [20, 0, -5],
+                [5, 0, -20], [-5, 0, -20],
+                [5, 0, 20], [-5, 0, 20]
+            ];
+            
+            positions.forEach(pos => {
+                // Столб
+                const poleGeometry = new THREE.BoxGeometry(0.5, 5, 0.5);
+                const pole = new THREE.Mesh(poleGeometry, blockMaterials.stone);
+                pole.position.set(pos[0], 2.5, pos[1]);
+                pole.castShadow = true;
+                scene.add(pole);
+                
+                // Фонарь
+                const lightGeometry = new THREE.SphereGeometry(0.7, 8, 8);
+                const light = new THREE.Mesh(lightGeometry, new THREE.MeshBasicMaterial({ color: 0xffffcc }));
+                light.position.set(pos[0], 5.5, pos[1]);
+                scene.add(light);
+                
+                // Источник света
+                const pointLight = new THREE.PointLight(0xffffcc, 1, 10);
+                pointLight.position.set(pos[0], 5, pos[1]);
+                pointLight.castShadow = true;
+                scene.add(pointLight);
+            });
+        }
+        
+        // Создание зданий
+        function createBuildings() {
+            // Жилые дома
+            createHouse(-15, 0, 15);
+            createHouse(-15, 0, -15);
+            createHouse(15, 0, 15);
+            createHouse(15, 0, -15);
+            
+            // Офисные здания
+            createOfficeBuilding(-30, 0, 0);
+            createOfficeBuilding(30, 0, 0);
+            createOfficeBuilding(0, 0, 30);
+            createOfficeBuilding(0, 0, -30);
+        }
+        
+        // Создание дома
+        function createHouse(x, y, z) {
+            const width = 8;
+            const height = 6;
+            const depth = 8;
+            
+            // Основная часть дома
+            const houseGeometry = new THREE.BoxGeometry(width, height, depth);
+            const house = new THREE.Mesh(houseGeometry, blockMaterials.building1);
+            house.position.set(x, height/2, z);
+            house.castShadow = true;
+            house.receiveShadow = true;
+            scene.add(house);
+            
+            // Крыша
+            const roofGeometry = new THREE.ConeGeometry(width * 0.8, 4, 4);
+            const roof = new THREE.Mesh(roofGeometry, blockMaterials.roof);
+            roof.position.set(x, height + 2, z);
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            scene.add(roof);
+            
+            // Окна
+            const windowGeometry = new THREE.BoxGeometry(1, 2, 0.1);
+            const windowMaterial = blockMaterials.glass;
+            
+            // Передние окна
+            const window1 = new THREE.Mesh(windowGeometry, windowMaterial);
+            window1.position.set(x - 2, height/2, z + depth/2 + 0.1);
+            scene.add(window1);
+            
+            const window2 = new THREE.Mesh(windowGeometry, windowMaterial);
+            window2.position.set(x + 2, height/2, z + depth/2 + 0.1);
+            scene.add(window2);
+            
+            // Дверь
+            const doorGeometry = new THREE.BoxGeometry(2, 3, 0.2);
+            const door = new THREE.Mesh(doorGeometry, blockMaterials.wood);
+            door.position.set(x, 1.5, z + depth/2 + 0.1);
+            scene.add(door);
+        }
+        
+        // Создание офисного здания
+        function createOfficeBuilding(x, y, z) {
+            const width = 12;
+            const height = 15;
+            const depth = 12;
+            
+            // Основная часть здания
+            const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+            const building = new THREE.Mesh(buildingGeometry, blockMaterials.building2);
+            building.position.set(x, height/2, z);
+            building.castShadow = true;
+            building.receiveShadow = true;
+            scene.add(building);
+            
+            // Окна
+            const windowGeometry = new THREE.BoxGeometry(width - 0.5, 0.5, 0.1);
+            const windowMaterial = blockMaterials.glass;
+            
+            for (let i = 0; i < 10; i++) {
+                const windowRow = new THREE.Mesh(windowGeometry, windowMaterial);
+                windowRow.position.set(x, 3 + i * 1.5, z + depth/2 + 0.1);
+                scene.add(windowRow);
+            }
+            
+            // Крыша
+            const roofGeometry = new THREE.BoxGeometry(width + 2, 1, depth + 2);
+            const roof = new THREE.Mesh(roofGeometry, blockMaterials.building3);
+            roof.position.set(x, height + 0.5, z);
+            roof.castShadow = true;
+            scene.add(roof);
+        }
+        
+        // Создание небоскреба
+        function createSkyscraper(x, y, z) {
+            const width = 8;
+            const height = 30;
+            const depth = 8;
+            
+            // Основная часть
+            const skyscraperGeometry = new THREE.BoxGeometry(width, height, depth);
+            const skyscraper = new THREE.Mesh(skyscraperGeometry, blockMaterials.building3);
+            skyscraper.position.set(x, height/2, z);
+            skyscraper.castShadow = true;
+            skyscraper.receiveShadow = true;
+            scene.add(skyscraper);
+            
+            // Окна
+            const windowGeometry = new THREE.BoxGeometry(width - 0.5, 0.3, 0.1);
+            const windowMaterial = blockMaterials.glass;
+            
+            for (let i = 0; i < 20; i++) {
+                const windowRow = new THREE.Mesh(windowGeometry, windowMaterial);
+                windowRow.position.set(x, 5 + i * 1.5, z + depth/2 + 0.1);
+                scene.add(windowRow);
+            }
+            
+            // Антенна на крыше
+            const antennaGeometry = new THREE.CylinderGeometry(0.1, 0.1, 5);
+            const antenna = new THREE.Mesh(antennaGeometry, blockMaterials.stone);
+            antenna.position.set(x, height + 2.5, z);
+            scene.add(antenna);
+        }
+        
+        // Создание парка
+        function createPark() {
+            const parkSize = 20;
+            const parkGeometry = new THREE.BoxGeometry(parkSize, 0.2, parkSize);
+            const park = new THREE.Mesh(parkGeometry, blockMaterials.grass);
+            park.position.set(-30, 0.1, -30);
+            park.receiveShadow = true;
+            scene.add(park);
+            
+            // Деревья в парке
+            for (let i = 0; i < 15; i++) {
+                createTree(
+                    -30 + Math.random() * parkSize - parkSize/2,
+                    1,
+                    -30 + Math.random() * parkSize - parkSize/2
+                );
+            }
+            
+            // Скамейки
+            createBench(-25, 0.2, -30);
+            createBench(-35, 0.2, -30);
+            createBench(-30, 0.2, -25);
+            createBench(-30, 0.2, -35);
+        }
+        
+        // Создание дерева
+        function createTree(x, y, z) {
+            // Ствол
+            const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 4);
+            const trunk = new THREE.Mesh(trunkGeometry, blockMaterials.wood);
+            trunk.position.set(x, y + 2, z);
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            scene.add(trunk);
+            
+            // Крона
+            const crownGeometry = new THREE.SphereGeometry(3, 8, 6);
+            const crown = new THREE.Mesh(crownGeometry, blockMaterials.grass);
+            crown.position.set(x, y + 5, z);
+            crown.castShadow = true;
+            scene.add(crown);
+        }
+        
+        // Создание скамейки
+        function createBench(x, y, z) {
+            // Сиденье
+            const seatGeometry = new THREE.BoxGeometry(3, 0.5, 1);
+            const seat = new THREE.Mesh(seatGeometry, blockMaterials.wood);
+            seat.position.set(x, y + 0.5, z);
+            seat.castShadow = true;
+            scene.add(seat);
+            
+            // Ножки
+            const legGeometry = new THREE.BoxGeometry(0.3, 1, 0.3);
+            
+            const leg1 = new THREE.Mesh(legGeometry, blockMaterials.wood);
+            leg1.position.set(x - 1.2, y + 0.5, z);
+            leg1.castShadow = true;
+            scene.add(leg1);
+            
+            const leg2 = new THREE.Mesh(legGeometry, blockMaterials.wood);
+            leg2.position.set(x + 1.2, y + 0.5, z);
+            leg2.castShadow = true;
+            scene.add(leg2);
+        }
+        
+        // Создание водоема
+        function createPond(x, y, z) {
+            const pondGeometry = new THREE.CylinderGeometry(8, 8, 1, 32);
+            const pond = new THREE.Mesh(pondGeometry, blockMaterials.water);
+            pond.position.set(x, y, z);
+            pond.receiveShadow = true;
+            scene.add(pond);
+            
+            // Камни вокруг водоема
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const radius = 8.5;
+                const stoneGeometry = new THREE.SphereGeometry(0.3 + Math.random() * 0.5, 6, 6);
+                const stone = new THREE.Mesh(stoneGeometry, blockMaterials.stone);
+                stone.position.set(
+                    x + Math.cos(angle) * radius,
+                    y + 0.2,
+                    z + Math.sin(angle) * radius
+                );
+                stone.castShadow = true;
+                scene.add(stone);
+            }
+        }
+        
+        // Симуляция загрузки
+        function simulateLoading() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                document.getElementById('loading-progress').style.width = `${progress}%`;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('loading-screen').style.display = 'none';
+                            document.getElementById('status').textContent = 'Нажмите для начала игры';
+                        }, 1000);
+                    }, 500);
+                }
+            }, 50);
+        }
+        
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            // Нажатие для начала игры
+            document.addEventListener('click', () => {
+                controls.lock();
+            });
+            
+            // Управление движением
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            // Изменение времени суток
+            document.getElementById('time-slider').addEventListener('input', (e) => {
+                const timeValue = e.target.value;
+                const hour = (timeValue / 100) * 24;
+                updateTimeOfDay(hour);
+            });
+            
+            // Изменение размера окна
+            window.addEventListener('resize', onWindowResize);
+            
+            // Взаимодействие с блоками
+            document.addEventListener('mousedown', onMouseDown);
+        }
+        
+        // Обработка нажатия клавиш
+        function onKeyDown(event) {
+            switch (event.code) {
+                case 'KeyW':
+                    moveForward = true;
+                    break;
+                case 'KeyA':
+                    moveLeft = true;
+                    break;
+                case 'KeyS':
+                    moveBackward = true;
+                    break;
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+                case 'Space':
+                    if (canJump) velocity.y = 10;
+                    canJump = false;
+                    break;
+                case 'KeyR':
+                    toggleDayNight();
+                    break;
+            }
+        }
+        
+        // Обработка отпускания клавиш
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'KeyW':
+                    moveForward = false;
+                    break;
+                case 'KeyA':
+                    moveLeft = false;
+                    break;
+                case 'KeyS':
+                    moveBackward = false;
+                    break;
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+            }
+        }
+        
+        // Переключение дня и ночи
+        function toggleDayNight() {
+            isNight = !isNight;
+            if (isNight) {
+                document.getElementById('time-slider').value = 20;
+                updateTimeOfDay(20);
+            } else {
+                document.getElementById('time-slider').value = 50;
+                updateTimeOfDay(12);
+            }
+        }
+        
+        // Обновление времени суток
+        function updateTimeOfDay(hour) {
+            const normalizedHour = hour / 24;
+            const angle = normalizedHour * Math.PI * 2;
+            
+            // Позиция солнца/луны
+            const radius = 100;
+            directionalLight.position.x = Math.cos(angle) * radius;
+            directionalLight.position.y = Math.sin(angle) * radius;
+            directionalLight.position.z = Math.sin(angle) * radius;
+            
+            // Интенсивность света
+            if (hour > 6 && hour < 18) {
+                // День
+                directionalLight.intensity = 0.8;
+                ambientLight.intensity = 0.6;
+                scene.fog.color.setHex(0x87CEEB);
+                renderer.setClearColor(0x87CEEB);
+            } else {
+                // Ночь
+                directionalLight.intensity = 0.2;
+                ambientLight.intensity = 0.2;
+                scene.fog.color.setHex(0x0a0a2a);
+                renderer.setClearColor(0x0a0a2a);
+            }
+            
+            // Цвет неба
+            if (hour > 4 && hour < 8) {
+                // Рассвет
+                directionalLight.color.setHex(0xffa500);
+            } else if (hour > 16 && hour < 20) {
+                // Закат
+                directionalLight.color.setHex(0xff4500);
+            } else {
+                directionalLight.color.setHex(0xffffff);
+            }
+        }
+        
+        // Обработка нажатия кнопки мыши
+        function onMouseDown(event) {
+            // Определяем, какая кнопка мыши была нажата
+            const isLeftClick = event.button === 0;
+            const isRightClick = event.button === 2;
+            
+            if (isLeftClick || isRightClick) {
+                event.preventDefault();
+                
+                // Обновляем позицию мыши для рейкастинга
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                
+                // Обновляем рейкастер
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Ищем пересечения с объектами сцены
+                const intersects = raycaster.intersectObjects(scene.children, true);
+                
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    
+                    if (isLeftClick) {
+                        // ЛКМ - удаление блока
+                        scene.remove(intersect.object);
+                        document.getElementById('status').textContent = 'Блок удален';
+                    } else if (isRightClick) {
+                        // ПКМ - добавление блока
+                        const normal = intersect.face.normal.clone();
+                        normal.transformDirection(intersect.object.matrixWorld);
+                        normal.normalize();
+                        
+                        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+                        const block = new THREE.Mesh(blockGeometry, blockMaterials.grass);
+                        block.position.copy(intersect.point).add(normal.multiplyScalar(0.5));
+                        block.position.set(
+                            Math.round(block.position.x),
+                            Math.round(block.position.y),
+                            Math.round(block.position.z)
+                        );
+                        block.castShadow = true;
+                        block.receiveShadow = true;
+                        scene.add(block);
+                        
+                        document.getElementById('status').textContent = 'Блок добавлен';
+                    }
+                }
+            }
+        }
+        
+        // Обработка изменения размера окна
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Игровой цикл
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Обновление времени
+            const delta = clock.getDelta();
+            
+            // Обновление управления движением
+            if (controls.isLocked) {
+                const speed = 20.0;
+                const actualSpeed = speed * delta;
+                
+                if (moveForward) velocity.z = -actualSpeed;
+                if (moveBackward) velocity.z = actualSpeed;
+                if (moveLeft) velocity.x = -actualSpeed;
+                if (moveRight) velocity.x = actualSpeed;
+                
+                // Гравитация
+                velocity.y -= 9.8 * delta;
+                
+                // Применяем движение
+                controls.moveRight(velocity.x);
+                controls.moveForward(velocity.z);
+                
+                // Обновляем позицию Y
+                controls.getObject().position.y += velocity.y * delta;
+                
+                // Проверяем, находится ли игрок на земле
+                if (controls.getObject().position.y < 10) {
+                    controls.getObject().position.y = 10;
+                    velocity.y = 0;
+                    canJump = true;
+                }
+                
+                // Сбрасываем скорость по X и Z
+                velocity.x = 0;
+                velocity.z = 0;
+                
+                // Обновляем статус
+                const pos = controls.getObject().position;
+                document.getElementById('status').textContent = 
+                    `Позиция: X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)}`;
+            }
+            
+            // Рендеринг сцены
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
